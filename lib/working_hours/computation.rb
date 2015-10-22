@@ -199,12 +199,34 @@ module WorkingHours
     end
 
     def windows_between duration, from, to, config: nil
+      # Any new key that's not already in the Hash returns an empty array
+
+      windows = Hash.new { |hash, key| hash[key] = [] }
+
+      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, from, beginning_of_day|
+        while time_in_day >= begins && window_end <= ends && from < to
+          windows[beginning_of_day.to_date] << [beginning_of_day + time_in_day, beginning_of_day + window_end]
+          time_in_day = window_end
+          window_end += duration
+        end
+      end
+
+      windows
+    end
+
+    def first_window_between duration, from, to, config: nil
+      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, from, beginning_of_day|
+        if time_in_day >= begins && window_end <= ends && from < to
+          return [beginning_of_day + time_in_day, beginning_of_day + window_end]
+        end
+      end
+    end
+
+    def walk_through_windows duration, from, to, config: nil, &block
       config ||= wh_config
       from = in_config_zone(from, config: config)
       to = in_config_zone(to, config: config).round
       from = advance_to_working_time(from) unless in_working_hours?(from, config: config)
-      # Any new key that's not already in the Hash returns an empty array
-      windows = Hash.new { |hash, key| hash[key] = [] }
 
       while from < to
         beginning_of_day = from.beginning_of_day
@@ -213,16 +235,11 @@ module WorkingHours
           time_in_day = from.seconds_since_midnight
           window_end = time_in_day + duration
 
-          while time_in_day >= begins && window_end <= ends && from < to
-            windows[beginning_of_day.to_date] << [beginning_of_day + time_in_day, beginning_of_day + window_end]
-            time_in_day = window_end
-            window_end += duration
-          end
+          yield time_in_day, window_end, begins, ends, from, beginning_of_day
           # roll to next business period
           from = next_working_time(from, config: config)
         end
       end
-      windows
     end
 
     private

@@ -613,4 +613,72 @@ describe WorkingHours::Computation do
       )).to eq(expected_windows)
     end
   end
+
+  describe '#first_window_between' do
+    before do
+      WorkingHours::Config.working_hours = {
+        mon: {'07:00' => '12:00', '13:00' => '18:00'},
+        tue: {'09:00' => '17:00'},
+        wed: {'09:00' => '17:00'},
+        thu: {'09:00' => '17:00'},
+        fri: {'09:00' => '17:00'}
+      }
+    end
+
+    it 'is empty if same time' do
+      expect(first_window_between(
+        2.hours,
+        Time.utc(2014, 4, 7, 8),
+        Time.utc(2014, 4, 7, 8)
+      )).to be_nil
+    end
+
+    it 'is empty during non working time' do
+      expect(first_window_between(
+        2.hours,
+        Time.utc(2014, 4, 4, 20), # Friday closed
+        Time.utc(2014, 4, 5, 22) # Saturday closed
+      )).to be_nil
+    end
+
+    it 'returns the first window in a period' do
+      expected_window = [Time.utc(2014, 4, 8, 9), Time.utc(2014, 4, 8, 11)]
+
+      expect(first_window_between(
+        2.hours,
+        Time.utc(2014, 4, 8, 8), # Tuesday 08:00,
+        Time.utc(2014, 4, 8, 18) # Tuesday 18:00
+      )).to eq(expected_window)
+    end
+
+    it 'handles multiple timespans' do
+       expected_window = [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 17)]
+
+      expect(first_window_between(
+        4.hours,
+        Time.utc(2014, 4, 7, 10), # Monday 10:00,
+        Time.utc(2014, 4, 7, 17) # Monday 17:00
+      )).to eq(expected_window)
+    end
+
+    it 'handles multiple days' do
+       expected_window = [Time.utc(2014, 4, 7, 7),  Time.utc(2014, 4, 7, 11)]
+
+      expect(first_window_between(
+        4.hours,
+        Time.utc(2014, 4, 4, 14), # Friday 14:00,
+        Time.utc(2014, 4, 7, 12) # Monday 12:00
+      )).to eq(expected_window)
+    end
+
+    it 'works with any timezone (converts to config)' do
+      expected_window = [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 16)]
+
+      expect(first_window_between(
+        3.hours,
+        Time.new(2014, 4, 7, 1, 0, 0, "-09:00"), # Monday 10am in UTC
+        Time.new(2014, 4, 7, 15, 0, 0, "-04:00") # Monday 7pm in UTC
+      )).to eq(expected_window)
+    end
+  end
 end
