@@ -546,24 +546,14 @@ describe WorkingHours::Computation do
     end
 
     it 'returns windows in the same period' do
-      expected_windows = [
-        {
-          start_time: Time.utc(2014, 4, 8, 9),
-          end_time: Time.utc(2014, 4, 8, 11)
-        },
-        {
-          start_time: Time.utc(2014, 4, 8, 11),
-          end_time: Time.utc(2014, 4, 8, 13)
-        },
-        {
-          start_time: Time.utc(2014, 4, 8, 13),
-          end_time: Time.utc(2014, 4, 8, 15)
-        },
-        {
-          start_time: Time.utc(2014, 4, 8, 15),
-          end_time: Time.utc(2014, 4, 8, 17)
-        }
-      ]
+      expected_windows = {
+        Time.utc(2014, 4, 8).to_date => [
+           [Time.utc(2014, 4, 8, 9), Time.utc(2014, 4, 8, 11)],
+           [Time.utc(2014, 4, 8, 11), Time.utc(2014, 4, 8, 13)],
+           [Time.utc(2014, 4, 8, 13), Time.utc(2014, 4, 8, 15)],
+           [Time.utc(2014, 4, 8, 15), Time.utc(2014, 4, 8, 17)]
+        ]
+      }
 
       expect(windows_between(
         2.hours,
@@ -573,24 +563,14 @@ describe WorkingHours::Computation do
     end
 
      it 'handles multiple timespans' do
-       expected_windows = [
-         {
-           start_time: Time.utc(2014, 4, 7, 8),
-           end_time: Time.utc(2014, 4, 7, 10)
-         },
-         {
-           start_time: Time.utc(2014, 4, 7, 10),
-           end_time: Time.utc(2014, 4, 7, 12)
-         },
-         {
-           start_time: Time.utc(2014, 4, 7, 13),
-           end_time: Time.utc(2014, 4, 7, 15)
-         },
-         {
-           start_time: Time.utc(2014, 4, 7, 15),
-           end_time: Time.utc(2014, 4, 7, 17)
-         }
-       ]
+       expected_windows = {
+         Time.utc(2014, 4, 7).to_date => [
+            [Time.utc(2014, 4, 7, 8), Time.utc(2014, 4, 7, 10)],
+            [Time.utc(2014, 4, 7, 10), Time.utc(2014, 4, 7, 12)],
+            [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 15)],
+            [Time.utc(2014, 4, 7, 15), Time.utc(2014, 4, 7, 17)]
+         ]
+       }
 
       expect(windows_between(
         2.hours,
@@ -600,20 +580,15 @@ describe WorkingHours::Computation do
     end
 
      it 'handles multiple days' do
-       expected_windows = [
-         {
-           start_time: Time.utc(2014, 4, 4, 14),
-           end_time: Time.utc(2014, 4, 4, 16)
-         },
-         {
-           start_time: Time.utc(2014, 4, 7, 7),
-           end_time: Time.utc(2014, 4, 7, 9)
-         },
-         {
-           start_time: Time.utc(2014, 4, 7, 9),
-           end_time: Time.utc(2014, 4, 7, 11)
-         }
-       ]
+       expected_windows = {
+         Time.utc(2014, 4, 4).to_date => [
+           [Time.utc(2014, 4, 4, 14),  Time.utc(2014, 4, 4, 16)]
+         ],
+         Time.utc(2014, 4, 7).to_date => [
+           [Time.utc(2014, 4, 7, 7),  Time.utc(2014, 4, 7, 9)],
+           [Time.utc(2014, 4, 7, 9),  Time.utc(2014, 4, 7, 11)]
+         ]
+       }
 
       expect(windows_between(
         2.hours,
@@ -623,20 +598,14 @@ describe WorkingHours::Computation do
     end
 
     it 'works with any timezone (converts to config)' do
-      expected_windows = [
-        {
-          start_time: Time.utc(2014, 4, 7, 10),
-          end_time: Time.utc(2014, 4, 7, 12)
-        },
-        {
-          start_time: Time.utc(2014, 4, 7, 13),
-          end_time: Time.utc(2014, 4, 7, 15)
-        },
-        {
-          start_time: Time.utc(2014, 4, 7, 15),
-          end_time: Time.utc(2014, 4, 7, 17)
-        }
-      ]
+      expected_windows = {
+        Time.utc(2014, 4, 7).to_date => [
+           [Time.utc(2014, 4, 7, 10), Time.utc(2014, 4, 7, 12)],
+           [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 15)],
+           [Time.utc(2014, 4, 7, 15), Time.utc(2014, 4, 7, 17)]
+         ]
+      }
+
       expect(windows_between(
         2.hours,
         Time.new(2014, 4, 7, 1, 0, 0, "-09:00"), # Monday 10am in UTC

@@ -203,7 +203,8 @@ module WorkingHours
       from = in_config_zone(from, config: config)
       to = in_config_zone(to, config: config).round
       from = advance_to_working_time(from) unless in_working_hours?(from, config: config)
-      windows = []
+      # Any new key that's not already in the Hash returns an empty array
+      windows = Hash.new { |hash, key| hash[key] = [] }
 
       while from < to
         beginning_of_day = from.beginning_of_day
@@ -213,7 +214,7 @@ module WorkingHours
           window_end = time_in_day + duration
 
           while time_in_day >= begins && window_end <= ends && from < to
-            windows << { start_time: beginning_of_day + time_in_day, end_time: beginning_of_day + window_end }
+            windows[beginning_of_day.to_date] << [beginning_of_day + time_in_day, beginning_of_day + window_end]
             time_in_day = window_end
             window_end += duration
           end
