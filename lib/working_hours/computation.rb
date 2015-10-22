@@ -198,6 +198,32 @@ module WorkingHours
       end
     end
 
+    def windows_between duration, from, to, config: nil
+      config ||= wh_config
+      from = in_config_zone(from, config: config)
+      to = in_config_zone(to, config: config).round
+      from = advance_to_working_time(from) unless in_working_hours?(from, config: config)
+      windows = []
+
+      while from < to
+        beginning_of_day = from.beginning_of_day
+
+        config[:working_hours][from.wday].each do |begins, ends|
+          time_in_day = from.seconds_since_midnight
+          window_end = time_in_day + duration
+
+          while time_in_day >= begins && window_end <= ends && from < to
+            windows << { start_time: beginning_of_day + time_in_day, end_time: beginning_of_day + window_end }
+            time_in_day = window_end
+            window_end += duration
+          end
+          # roll to next business period
+          from = next_working_time(from, config: config)
+        end
+      end
+      windows
+    end
+
     private
 
     def wh_config
