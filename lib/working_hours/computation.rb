@@ -85,6 +85,28 @@ module WorkingHours
       end
     end
 
+    def return_to_opening_time time, config: nil
+      config ||= wh_config
+
+      time = in_config_zone(time, config: config)
+      loop do
+        # skip holidays and weekends
+        until working_day?(time, config: config)
+          time = (time - 1.day)
+        end
+
+        time_in_day = time.seconds_since_midnight
+        time = time.end_of_day
+        beginning_of_day = time.beginning_of_day
+
+        (config[:working_hours][time.wday] || {}).reverse_each do |from, to|
+          return beginning_of_day + from if time_in_day >= from && time_in_day < to or to <= time_in_day
+        end
+        # if none is found, go to next day and loop
+        time = (time - 1.day)
+      end
+    end
+
     def advance_to_closing_time time, config: nil
       config ||= wh_config
       time = in_config_zone(time, config: config).round
@@ -140,7 +162,7 @@ module WorkingHours
     def working_day? time, config: nil
       config ||= wh_config
       time = in_config_zone(time, config: config)
-      config[:working_hours][time.wday].present? and not config[:holidays].include?(time.to_date)
+      config[:working_hours][time.wday].present? && !config[:holidays].include?(time.to_date)
     end
 
     def in_working_hours? time, config: nil
