@@ -76,8 +76,9 @@ module WorkingHours
         end
         # find first working range after time
         time_in_day = time.seconds_since_midnight
+        offset = (time.beginning_of_day.dst? && !time.dst?) ? 1.hour : 0
         (config[:working_hours][time.wday] || {}).each do |from, to|
-          return time if time_in_day >= from and time_in_day < to
+          return time + offset if time_in_day >= from && time_in_day < to
           return time + (from - time_in_day) if from >= time_in_day
         end
         # if none is found, go to next day and loop
@@ -118,9 +119,10 @@ module WorkingHours
         # find next working range after time
         time_in_day = time.seconds_since_midnight
         time = time.beginning_of_day
+        offset = time.beginning_of_day.dst? && !time.dst? ? 1.hour : 0
         (config[:working_hours][time.wday] || {}).each do |from, to|
-          return time + to if time_in_day >= from and time_in_day < to
-          return time + to if from >= time_in_day
+          return time + offset + to if time_in_day >= from and time_in_day < to
+          return time + offset + to if from >= time_in_day
         end
         # if none is found, go to next day and loop
         time = time + 1.day
@@ -222,12 +224,12 @@ module WorkingHours
 
     def windows_between duration, from, to, config: nil
       # Any new key that's not already in the Hash returns an empty array
-
       windows = Hash.new { |hash, key| hash[key] = [] }
 
       walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, from, beginning_of_day|
         while time_in_day >= begins && window_end <= ends && from < to
-          windows[beginning_of_day.to_date] << [beginning_of_day + time_in_day, beginning_of_day + window_end]
+          offset = beginning_of_day.dst? && !from.dst? ? 1.hour : 0
+          windows[beginning_of_day.to_date] << [beginning_of_day + offset + time_in_day, beginning_of_day + offset + window_end]
           time_in_day = window_end
           window_end += duration
         end
@@ -258,6 +260,7 @@ module WorkingHours
           window_end = time_in_day + duration
 
           yield time_in_day, window_end, begins, ends, from, beginning_of_day
+
           # roll to next business period
           from = next_working_time(from, config: config)
         end

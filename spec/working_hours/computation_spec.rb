@@ -661,15 +661,15 @@ describe WorkingHours::Computation do
       )).to eq(expected_windows)
     end
 
-     it 'handles multiple timespans' do
-       expected_windows = {
-         Time.utc(2014, 4, 7).to_date => [
-            [Time.utc(2014, 4, 7, 8), Time.utc(2014, 4, 7, 10)],
-            [Time.utc(2014, 4, 7, 10), Time.utc(2014, 4, 7, 12)],
-            [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 15)],
-            [Time.utc(2014, 4, 7, 15), Time.utc(2014, 4, 7, 17)]
-         ]
-       }
+    it 'handles multiple timespans' do
+      expected_windows = {
+        Time.utc(2014, 4, 7).to_date => [
+           [Time.utc(2014, 4, 7, 8), Time.utc(2014, 4, 7, 10)],
+           [Time.utc(2014, 4, 7, 10), Time.utc(2014, 4, 7, 12)],
+           [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 15)],
+           [Time.utc(2014, 4, 7, 15), Time.utc(2014, 4, 7, 17)]
+        ]
+      }
 
       expect(windows_between(
         2.hours,
@@ -678,7 +678,7 @@ describe WorkingHours::Computation do
       )).to eq(expected_windows)
     end
 
-     it 'handles multiple days' do
+    it 'handles multiple days' do
        expected_windows = {
          Time.utc(2014, 4, 4).to_date => [
            [Time.utc(2014, 4, 4, 14),  Time.utc(2014, 4, 4, 16)]
@@ -709,6 +709,41 @@ describe WorkingHours::Computation do
         2.hours,
         Time.new(2014, 4, 7, 1, 0, 0, "-09:00"), # Monday 10am in UTC
         Time.new(2014, 4, 7, 15, 0, 0, "-04:00") # Monday 7pm in UTC
+      )).to eq(expected_windows)
+    end
+
+    it 'jumps DST changes' do
+      WorkingHours::Config.time_zone = 'America/Los_Angeles'
+      WorkingHours::Config.working_hours = {
+        fri: {'09:00' => '17:00'},
+        sat: {'09:00' => '17:00'},
+        sun: {'09:00' => '17:00'}
+      }
+      expected_windows = {
+        Time.utc(2015, 10, 30).to_date => [ # Fri 30th Oct 2015
+           [Time.new(2015, 10, 30, 9, 0, 0, '-07:00'), Time.new(2015, 10, 30, 11, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 30, 11, 0, 0, '-07:00'), Time.new(2015, 10, 30, 13, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 30, 13, 0, 0, '-07:00'), Time.new(2015, 10, 30, 15, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 30, 15, 0, 0, '-07:00'), Time.new(2015, 10, 30, 17, 0, 0, '-07:00')]
+        ],
+        Time.utc(2015, 10, 31).to_date => [ # Sat 31st Oct 2015
+           [Time.new(2015, 10, 31, 9, 0, 0, '-07:00'), Time.new(2015, 10, 31, 11, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 31, 11, 0, 0, '-07:00'), Time.new(2015, 10, 31, 13, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 31, 13, 0, 0, '-07:00'), Time.new(2015, 10, 31, 15, 0, 0, '-07:00')],
+           [Time.new(2015, 10, 31, 15, 0, 0, '-07:00'), Time.new(2015, 10, 31, 17, 0, 0, '-07:00')]
+        ],
+        Time.utc(2015, 11, 1).to_date => [ # Sun 1st Nov 2015
+           [Time.new(2015, 11, 1, 9, 0, 0, '-08:00'), Time.new(2015, 11, 1, 11, 0, 0, '-08:00')],
+           [Time.new(2015, 11, 1, 11, 0, 0, '-08:00'), Time.new(2015, 11, 1, 13, 0, 0, '-08:00')],
+           [Time.new(2015, 11, 1, 13, 0, 0, '-08:00'), Time.new(2015, 11, 1, 15, 0, 0, '-08:00')],
+           [Time.new(2015, 11, 1, 15, 0, 0, '-08:00'), Time.new(2015, 11, 1, 17, 0, 0, '-08:00')]
+        ]
+      }
+
+      expect(windows_between(
+        2.hours,
+        Time.new(2015, 10, 30, 8, 0, 0, '-07:00').in_time_zone('America/Los_Angeles'), # Friday 08:00,
+        Time.new(2015, 11, 1, 17, 0, 0, '-08:00').in_time_zone('America/Los_Angeles') # Sunday 17:00
       )).to eq(expected_windows)
     end
   end
