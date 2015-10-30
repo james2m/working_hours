@@ -775,6 +775,24 @@ describe WorkingHours::Computation do
       )).to be_nil
     end
 
+    it 'is empty when no working time is long enough' do
+      WorkingHours::Config.working_hours = {
+        sun: {'09:00' => '09:30'},
+        mon: {'09:00' => '09:30'},
+        tue: {'09:00' => '09:30'},
+        wed: {'09:00' => '09:30'},
+        thu: {'09:00' => '09:30'},
+        fri: {'09:00' => '09:30'},
+        sat: {'09:00' => '09:30'}
+      }
+
+      expect(first_window_between(
+        2.hours,
+        Time.utc(2014, 4, 4, 20), # Friday closed
+        Time.utc(2014, 4, 5, 22) # Saturday closed
+      )).to be_nil
+    end
+
     it 'returns the first window in a period' do
       expected_window = [Time.utc(2014, 4, 8, 9), Time.utc(2014, 4, 8, 11)]
 
@@ -804,6 +822,25 @@ describe WorkingHours::Computation do
         Time.utc(2014, 4, 7, 12) # Monday 12:00
       )).to eq(expected_window)
     end
+
+    it 'jumps DST changes' do
+      WorkingHours::Config.time_zone = 'America/Los_Angeles'
+      WorkingHours::Config.working_hours = {
+        sun: {'09:00' => '17:00'}
+      }
+
+      expected_window = [
+        Time.new(2015, 11, 1, 9, 0, 0, '-08:00'),
+        Time.new(2015, 11, 1, 11, 0, 0, '-08:00')
+      ]
+
+      expect(first_window_between(
+        2.hours,
+        Time.new(2015, 10, 31, 14, 0, 0, '-07:00'), # Saturday 31st 14:00,
+        Time.new(2015, 11, 3, 19, 0, 0, '-08:00') # Tuesday 3rd 19:00
+      )).to eq(expected_window)
+    end
+
 
     it 'works with any timezone (converts to config)' do
       expected_window = [Time.utc(2014, 4, 7, 13), Time.utc(2014, 4, 7, 16)]

@@ -226,9 +226,9 @@ module WorkingHours
       # Any new key that's not already in the Hash returns an empty array
       windows = Hash.new { |hash, key| hash[key] = [] }
 
-      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, from, beginning_of_day|
-        while time_in_day >= begins && window_end <= ends && from < to
-          offset = beginning_of_day.dst? && !from.dst? ? 1.hour : 0
+      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, time, beginning_of_day|
+        while time_in_day >= begins && window_end <= ends && time < to
+          offset = beginning_of_day.dst? && !time.dst? ? 1.hour : 0
           windows[beginning_of_day.to_date] << [beginning_of_day + offset + time_in_day, beginning_of_day + offset + window_end]
           time_in_day = window_end
           window_end += duration
@@ -239,9 +239,11 @@ module WorkingHours
     end
 
     def first_window_between duration, from, to, config: nil
-      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, from, beginning_of_day|
-        if time_in_day >= begins && window_end <= ends && from < to
-          return [beginning_of_day + time_in_day, beginning_of_day + window_end]
+      walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, time, beginning_of_day|
+        return nil if time >= to
+        if time_in_day >= begins && window_end <= ends
+          offset = beginning_of_day.dst? && !time.dst? ? 1.hour : 0
+          return [beginning_of_day + offset + time_in_day, beginning_of_day + offset + window_end]
         end
       end
     end
