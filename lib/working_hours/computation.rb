@@ -75,10 +75,11 @@ module WorkingHours
           time = (time + 1.day).beginning_of_day
         end
         # find first working range after time
-        time_in_day = time.seconds_since_midnight
-        offset = (time.beginning_of_day.dst? && !time.dst?) ? 1.hour : 0
+        time_in_day = time - time.beginning_of_day
         (config[:working_hours][time.wday] || {}).each do |from, to|
+          offset = (time.beginning_of_day.dst? && !(time + from).dst?) ? 1.hour : 0
           return time + offset if time_in_day >= from && time_in_day < to
+          return time + from + offset if !(time+from).dst? && time.dst? && from >= time_in_day
           return time + (from - time_in_day) if from >= time_in_day
         end
         # if none is found, go to next day and loop
@@ -96,9 +97,9 @@ module WorkingHours
           time = (time - 1.day)
         end
 
-        time_in_day = time.seconds_since_midnight
-        time = time.end_of_day
         beginning_of_day = time.beginning_of_day
+        time_in_day = time - beginning_of_day
+        time = time.end_of_day
 
         (config[:working_hours][time.wday] || {}).reverse_each do |from, to|
           return beginning_of_day + from if time_in_day >= from && time_in_day < to or to <= time_in_day
@@ -117,9 +118,9 @@ module WorkingHours
           time = (time + 1.day).beginning_of_day
         end
         # find next working range after time
-        time_in_day = time.seconds_since_midnight
-        time = time.beginning_of_day
+        time_in_day = time - time.beginning_of_day
         offset = time.beginning_of_day.dst? && !time.dst? ? 1.hour : 0
+        time = time.beginning_of_day
         (config[:working_hours][time.wday] || {}).each do |from, to|
           return time + offset + to if time_in_day >= from and time_in_day < to
           return time + offset + to if from >= time_in_day
@@ -227,9 +228,8 @@ module WorkingHours
       windows = Hash.new { |hash, key| hash[key] = [] }
 
       walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, time, beginning_of_day|
-        while time_in_day >= begins && window_end <= ends && time < to
-          offset = beginning_of_day.dst? && !time.dst? ? 1.hour : 0
-          windows[beginning_of_day.to_date] << [beginning_of_day + offset + time_in_day, beginning_of_day + offset + window_end]
+        while time_in_day >= begins && window_end <= ends && time <= to
+           windows[beginning_of_day.to_date] << [beginning_of_day + time_in_day, beginning_of_day + window_end]
           time_in_day = window_end
           window_end += duration
         end
@@ -242,8 +242,7 @@ module WorkingHours
       walk_through_windows(duration, from, to, config: config) do |time_in_day, window_end, begins, ends, time, beginning_of_day|
         return nil if time >= to
         if time_in_day >= begins && window_end <= ends
-          offset = beginning_of_day.dst? && !time.dst? ? 1.hour : 0
-          return [beginning_of_day + offset + time_in_day, beginning_of_day + offset + window_end]
+          return [beginning_of_day + time_in_day, beginning_of_day + window_end]
         end
       end
     end
@@ -258,7 +257,7 @@ module WorkingHours
         beginning_of_day = from.beginning_of_day
 
         config[:working_hours][from.wday].each do |begins, ends|
-          time_in_day = from.seconds_since_midnight
+          time_in_day = from - beginning_of_day
           window_end = time_in_day + duration
 
           yield time_in_day, window_end, begins, ends, from, beginning_of_day
